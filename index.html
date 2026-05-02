@@ -156,6 +156,7 @@
       transition: transform .12s ease;
       will-change: transform;
       overflow: hidden;
+      position: relative;
     }
 
     #summary { left: 14px; top: var(--panel-top); }
@@ -270,6 +271,91 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .pie-panel-layout {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 68% 32%;
+      grid-template-rows: 1fr;
+      gap: 6px;
+      overflow: hidden;
+    }
+
+    .pie-chart-wrap {
+      min-width: 0;
+      min-height: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .pie-side-list {
+      min-width: 0;
+      min-height: 0;
+      padding: 4px 2px 4px 6px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-left: 1px dashed rgba(125,211,252,.16);
+    }
+
+    .pie-side-title {
+      flex: 0 0 auto;
+      font-size: 11px;
+      color: #7dd3fc;
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .pie-side-items {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .pie-side-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      min-width: 0;
+      font-size: 11px;
+      color: #dbeafe;
+      line-height: 1.5;
+      padding: 1px 0;
+      border-bottom: 1px dashed rgba(255,255,255,.06);
+    }
+
+    .pie-side-name {
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pie-side-value {
+      flex: 0 0 auto;
+      color: #facc15;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .pie-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      margin-right: 6px;
+      flex: 0 0 auto;
+    }
+
+    .pie-side-line {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
     }
 
     #provincePopup, #abroadPopup {
@@ -483,6 +569,10 @@
         grid-template-columns: minmax(220px,1fr) 100px 90px;
         column-gap: 18px;
       }
+
+      .pie-panel-layout {
+        grid-template-columns: 64% 36%;
+      }
     }
   </style>
 </head>
@@ -546,7 +636,13 @@
   <div id="underUnitPanel" class="panel" data-panel-type="chart">
     <h3>本科生签约单位性质</h3>
     <div class="panel-content">
-      <div id="underUnitChart" class="chart"></div>
+      <div class="pie-panel-layout">
+        <div id="underUnitChart" class="pie-chart-wrap"></div>
+        <div class="pie-side-list">
+          <div class="pie-side-title">其余类别</div>
+          <div id="underUnitExtraList" class="pie-side-items"></div>
+        </div>
+      </div>
     </div>
     <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
@@ -554,7 +650,13 @@
   <div id="gradUnitPanel" class="panel" data-panel-type="chart">
     <h3>研究生签约单位性质</h3>
     <div class="panel-content">
-      <div id="gradUnitChart" class="chart"></div>
+      <div class="pie-panel-layout">
+        <div id="gradUnitChart" class="pie-chart-wrap"></div>
+        <div class="pie-side-list">
+          <div class="pie-side-title">其余类别</div>
+          <div id="gradUnitExtraList" class="pie-side-items"></div>
+        </div>
+      </div>
     </div>
     <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
@@ -653,6 +755,12 @@
     "北京", "天津", "上海", "重庆", "河北", "河南", "云南", "辽宁", "黑龙江", "湖南", "安徽", "山东",
     "新疆", "江苏", "浙江", "江西", "湖北", "广西", "甘肃", "山西", "内蒙古", "陕西", "吉林", "福建",
     "贵州", "广东", "青海", "西藏", "四川", "宁夏", "海南", "台湾", "香港", "澳门"
+  ];
+
+  const pieColors = [
+    "#38bdf8", "#f59e0b", "#22c55e", "#ef4444", "#a78bfa",
+    "#f97316", "#14b8a6", "#eab308", "#94a3b8", "#fb7185",
+    "#60a5fa", "#facc15", "#34d399", "#c084fc", "#f87171"
   ];
 
   const mapChart = echarts.init(document.getElementById("map"));
@@ -1082,17 +1190,57 @@
     syncFullscreenIfNeeded("destinationPanel");
   }
 
-  function renderPieChart(chart, obj) {
-    let data = Object.entries(obj).map(([name, value]) => ({ name, value }));
-    if (!data.length) data = [{ name: "暂无数据", value: 0 }];
+  function buildPieData(obj) {
+    return Object.entries(obj)
+      .map(([name, value], index) => ({
+        name,
+        value,
+        itemStyle: { color: pieColors[index % pieColors.length] }
+      }))
+      .sort((a, b) => b.value - a.value);
+  }
 
-    const colorList = [
-      "#38bdf8", "#f59e0b", "#22c55e", "#ef4444", "#a78bfa",
-      "#f97316", "#14b8a6", "#eab308", "#94a3b8", "#fb7185"
-    ];
+  function renderExtraList(containerId, extraItems) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!extraItems.length) {
+      container.innerHTML = `<div class="empty" style="padding:4px 0;font-size:11px;">已全部在图中显示</div>`;
+      return;
+    }
+
+    container.innerHTML = extraItems.map(item => `
+      <div class="pie-side-item">
+        <div class="pie-side-line">
+          <span class="pie-dot" style="background:${item.itemStyle && item.itemStyle.color ? item.itemStyle.color : '#38bdf8'}"></span>
+          <span class="pie-side-name" title="${item.name}">${item.name}</span>
+        </div>
+        <span class="pie-side-value">${item.value}</span>
+      </div>
+    `).join("");
+  }
+
+  function renderPieChart(chart, obj, extraListId) {
+    let allData = buildPieData(obj);
+    if (!allData.length) {
+      allData = [{ name: "暂无数据", value: 0, itemStyle: { color: "#334155" } }];
+    }
+
+    const total = allData.reduce((sum, item) => sum + item.value, 0) || 1;
+
+    const visibleData = allData.filter((item, index) => {
+      const percent = item.value / total * 100;
+      return index < 4 || percent >= 8;
+    });
+
+    const visibleNames = new Set(visibleData.map(item => item.name));
+    const extraData = allData.filter(item => !visibleNames.has(item.name));
+
+    renderExtraList(extraListId, extraData);
 
     chart.setOption({
-      color: colorList,
+      color: pieColors,
+      animation: true,
       tooltip: {
         trigger: "item",
         confine: true,
@@ -1100,39 +1248,45 @@
       },
       legend: {
         type: "scroll",
-        bottom: 4,
-        left: 8,
-        right: 8,
+        bottom: 0,
+        left: 0,
+        right: 0,
         itemWidth: 12,
         itemHeight: 10,
-        itemGap: 10,
+        itemGap: 8,
         textStyle: {
           color: "#cbd5e1",
           fontSize: 10
         },
         pageIconColor: "#38bdf8",
-        pageTextStyle: { color: "#cbd5e1" }
+        pageTextStyle: { color: "#cbd5e1" },
+        data: allData.map(item => item.name)
       },
       series: [{
         type: "pie",
-        radius: ["20%", "48%"],
-        center: ["50%", "32%"],
+        radius: ["28%", "58%"],
+        center: ["46%", "34%"],
         avoidLabelOverlap: true,
         minAngle: 2,
         startAngle: 90,
+        selectedOffset: 4,
+        labelLayout: {
+          hideOverlap: true
+        },
         label: {
           show: true,
+          position: "outside",
           color: "#e5e7eb",
           fontSize: 10,
           formatter: function(params) {
-            if (params.percent < 8) return "";
+            if (!visibleNames.has(params.name)) return "";
             return `${params.name} ${params.value}`;
           }
         },
         labelLine: {
           show: true,
-          length: 8,
-          length2: 6,
+          length: 10,
+          length2: 8,
           smooth: false,
           lineStyle: {
             color: "rgba(226,232,240,.75)"
@@ -1142,7 +1296,7 @@
           scale: true,
           scaleSize: 6
         },
-        data
+        data: allData
       }]
     }, true);
   }
@@ -1152,8 +1306,8 @@
     const underData = employmentData.filter(d => d.degree === "本科生");
     const gradData = employmentData.filter(d => isGraduateDegree(d.degree));
 
-    renderPieChart(underUnitChart, countBy(underData, d => d.unitType || "其他"));
-    renderPieChart(gradUnitChart, countBy(gradData, d => d.unitType || "其他"));
+    renderPieChart(underUnitChart, countBy(underData, d => d.unitType || "其他"), "underUnitExtraList");
+    renderPieChart(gradUnitChart, countBy(gradData, d => d.unitType || "其他"), "gradUnitExtraList");
 
     syncFullscreenIfNeeded("underUnitPanel");
     syncFullscreenIfNeeded("gradUnitPanel");
