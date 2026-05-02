@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>交通物流学院毕业去向驾驶舱</title>
+  <title>交通物流学院毕业生去向驾驶舱</title>
 
   <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
@@ -900,28 +900,76 @@
     }, true);
   }
 
+  function wrapAxisLabel(text, maxLen = 8) {
+    const value = String(text || "");
+    if (value.length <= maxLen) return value;
+    const lines = [];
+    for (let i = 0; i < value.length; i += maxLen) {
+      lines.push(value.slice(i, i + maxLen));
+    }
+    return lines.join("\n");
+  }
+
   function renderBarChart(chart, obj) {
     const entries = Object.entries(obj).sort((a, b) => b[1] - a[1]);
 
     chart.setOption({
-      grid: { left: 86, right: 18, top: 18, bottom: 25 },
-      tooltip: { trigger: "axis" },
+      grid: {
+        left: 145,
+        right: 20,
+        top: 16,
+        bottom: 28,
+        containLabel: false
+      },
+      tooltip: {
+        trigger: "axis",
+        confine: true,
+        axisPointer: { type: "shadow" },
+        formatter: params => {
+          const p = params[0];
+          return `${p.name}<br/>人数：${p.value}人`;
+        }
+      },
       xAxis: {
         type: "value",
         axisLabel: { color: "#cbd5e1" },
+        axisLine: { lineStyle: { color: "rgba(148,163,184,.45)" } },
         splitLine: { lineStyle: { color: "rgba(255, 255, 255, 0.08)" } }
       },
       yAxis: {
         type: "category",
         data: entries.length ? entries.map(e => e[0]) : ["暂无数据"],
-        axisLabel: { color: "#cbd5e1", fontSize: 11 }
+        axisTick: { show: false },
+        axisLine: { show: false },
+        axisLabel: {
+          color: "#cbd5e1",
+          fontSize: 11,
+          interval: 0,
+          width: 128,
+          overflow: "break",
+          lineHeight: 14,
+          align: "right",
+          margin: 10,
+          formatter: function(value) {
+            return wrapAxisLabel(value, 8);
+          }
+        }
       },
       series: [{
         name: "人数",
         type: "bar",
         data: entries.length ? entries.map(e => e[1]) : [0],
-        barWidth: 12,
-        itemStyle: { color: "#38bdf8" }
+        barWidth: 14,
+        itemStyle: {
+          color: "#38bdf8",
+          barBorderRadius: [0, 3, 3, 0]
+        },
+        label: {
+          show: true,
+          position: "right",
+          color: "#e2e8f0",
+          fontSize: 10
+        }
       }]
     }, true);
   }
@@ -962,9 +1010,10 @@
     });
 
     destinationChart.setOption({
-      grid: { left: 45, right: 18, top: 22, bottom: 68 },
+      grid: { left: 42, right: 18, top: 20, bottom: 72 },
       tooltip: {
         trigger: "axis",
+        confine: true,
         formatter: params => {
           const p = params[0];
           return `${p.name}<br/>人数：${p.value}人<br/>比例：${ratios[p.dataIndex]}%`;
@@ -973,11 +1022,13 @@
       xAxis: {
         type: "category",
         data: xNames,
-        axisLabel: { color: "#cbd5e1", rotate: 35, fontSize: 11 }
+        axisLabel: { color: "#cbd5e1", rotate: 32, fontSize: 11, margin: 12 },
+        axisLine: { lineStyle: { color: "rgba(148,163,184,.45)" } }
       },
       yAxis: {
         type: "value",
         axisLabel: { color: "#cbd5e1" },
+        axisLine: { show: false },
         splitLine: { lineStyle: { color: "rgba(255, 255, 255, 0.08)" } }
       },
       series: [{
@@ -989,7 +1040,14 @@
           color: params => {
             const colors = ["#22c55e", "#3b82f6", "#f59e0b"];
             return colors[params.dataIndex % 3];
-          }
+          },
+          barBorderRadius: [3, 3, 0, 0]
+        },
+        label: {
+          show: true,
+          position: "top",
+          color: "#e2e8f0",
+          fontSize: 10
         }
       }]
     }, true);
@@ -1001,24 +1059,56 @@
     let data = Object.entries(obj).map(([name, value]) => ({ name, value }));
     if (!data.length) data = [{ name: "暂无数据", value: 0 }];
 
+    const colorList = [
+      "#38bdf8", "#f59e0b", "#22c55e", "#ef4444", "#a78bfa",
+      "#f97316", "#14b8a6", "#eab308", "#94a3b8", "#fb7185"
+    ];
+
     chart.setOption({
+      color: colorList,
       tooltip: {
         trigger: "item",
+        confine: true,
         formatter: "{b}<br/>人数：{c}人<br/>占比：{d}%"
       },
       legend: {
+        type: "scroll",
         bottom: 0,
-        textStyle: { color: "#cbd5e1" }
+        left: "center",
+        right: 8,
+        itemWidth: 14,
+        itemHeight: 10,
+        textStyle: {
+          color: "#cbd5e1",
+          fontSize: 10
+        },
+        pageIconColor: "#38bdf8",
+        pageTextStyle: { color: "#cbd5e1" }
       },
       series: [{
         type: "pie",
-        radius: ["35%", "62%"],
-        center: ["50%", "42%"],
-        data,
+        radius: ["18%", "42%"],
+        center: ["50%", "34%"],
+        avoidLabelOverlap: true,
+        minAngle: 4,
         label: {
+          show: true,
           color: "#e5e7eb",
-          formatter: "{b}: {c}"
-        }
+          fontSize: 10,
+          formatter: function(params) {
+            if (params.percent < 6) return "";
+            return `${params.name}: ${params.value}`;
+          }
+        },
+        labelLine: {
+          show: true,
+          length: 8,
+          length2: 6,
+          lineStyle: {
+            color: "rgba(226,232,240,.75)"
+          }
+        },
+        data
       }]
     }, true);
   }
@@ -1250,13 +1340,13 @@
       updateAll();
 
       document.getElementById("uploadStatus").innerText =
-        `加载成功，共 ${graduates.length} 条（工作表：${firstSheetName}）`;
+        `在线 Excel 加载成功，共 ${graduates.length} 条（工作表：${firstSheetName}）`;
     } catch (error) {
       console.error(error);
       graduates = [];
       updateAll();
       document.getElementById("uploadStatus").innerText =
-        " 加载失败，请检查";
+        "在线 Excel 加载失败，请检查 graduates.xlsx 是否存在且表头是否正确";
     }
   }
 
@@ -1320,7 +1410,7 @@
       window.__fullscreenChartInstance.resize();
     }
   });
-
+ <h4>by喻琪宁</h4>
   bindPanelEvents();
   loadDataFromExcel();
 </script>
