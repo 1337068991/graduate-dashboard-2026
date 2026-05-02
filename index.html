@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>交通物流学院毕业生去向驾驶舱</title>
+  <title>交通物流学院毕业去向驾驶舱</title>
 
   <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
@@ -154,13 +154,62 @@
       position: absolute;
       left: calc(var(--side-width) + 34px);
       right: calc(var(--side-width) + 34px);
-      top: 72px;
+      top: 108px;
       bottom: 26px;
       z-index: 1;
       border-radius: 20px;
       background:
         radial-gradient(circle at center, rgba(14,165,233,.15), transparent 50%),
         linear-gradient(180deg, rgba(2,8,23,.08), rgba(2,8,23,.22));
+    }
+
+    #abroadPanel {
+      position: absolute;
+      left: calc(var(--side-width) + 34px);
+      right: calc(var(--side-width) + 34px);
+      top: 60px;
+      height: 40px;
+      z-index: 6;
+      border-radius: 12px;
+      border: 1px solid rgba(56,189,248,.6);
+      background:
+        radial-gradient(circle at center, rgba(14,165,233,.12), transparent 58%),
+        linear-gradient(180deg, rgba(8,47,73,.88), rgba(2,8,23,.9));
+      box-shadow: inset 0 0 18px rgba(56,189,248,.08), 0 0 18px rgba(14,165,233,.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #93c5fd;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      cursor: pointer;
+      user-select: none;
+      transition: all .2s ease;
+      overflow: hidden;
+    }
+
+    #abroadPanel::before {
+      content: "";
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+    }
+
+    #abroadPanel:hover {
+      color: #e0f2fe;
+      border-color: rgba(125,211,252,.9);
+      box-shadow: inset 0 0 18px rgba(56,189,248,.12), 0 0 24px rgba(14,165,233,.35);
+      transform: translateY(-1px);
+    }
+
+    #abroadPanel .abroad-count {
+      margin-left: 10px;
+      color: #facc15;
+      text-shadow: 0 0 8px rgba(250,204,21,.5);
     }
 
     .chart {
@@ -207,7 +256,7 @@
       text-overflow: ellipsis;
     }
 
-    #provincePopup {
+    #provincePopup, #abroadPopup {
       display: none;
       position: absolute;
       left: 50%;
@@ -230,7 +279,7 @@
       margin-bottom: 10px;
     }
 
-    #popupTitle {
+    #popupTitle, #abroadPopupTitle {
       font-size: 18px;
       font-weight: bold;
       color: #93c5fd;
@@ -266,7 +315,7 @@
 
     input { vertical-align: middle; }
 
-    #graduateList {
+    #graduateList, #abroadGraduateList {
       max-height: 385px;
       overflow-y: auto;
       padding-right: 6px;
@@ -396,6 +445,9 @@
 
       .summary-item { padding: 4px 6px; }
       .summary-value { font-size: 15px; }
+
+      #map { top: 104px; }
+      #abroadPanel { top: 60px; height: 38px; }
     }
 
     @media (max-width: 1280px) {
@@ -404,7 +456,7 @@
       .title { font-size: 24px; }
       .panel h3 { font-size: 14px; }
       .summary-value { font-size: 15px; }
-      #provincePopup { width: 660px; }
+      #provincePopup, #abroadPopup { width: 660px; }
 
       .graduate-list-head, .graduate-row {
         grid-template-columns: minmax(220px,1fr) 100px 90px;
@@ -450,6 +502,11 @@
       <div id="gradMajorChart" class="chart"></div>
     </div>
     <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
+  </div>
+
+  <div id="abroadPanel">
+    出国出境
+    <span id="abroadCount" class="abroad-count">0人</span>
   </div>
 
   <div id="map"></div>
@@ -512,6 +569,40 @@
     </div>
 
     <div id="graduateList"></div>
+  </div>
+
+  <div id="abroadPopup">
+    <div class="popup-header">
+      <div id="abroadPopupTitle"></div>
+      <button class="close-btn" onclick="closeAbroadPopup()">关闭</button>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        学历：
+        <label><input type="radio" name="abroadEduFilter" value="本科生"> 本科生</label>
+        <label><input type="radio" name="abroadEduFilter" value="研究生"> 研究生</label>
+        <label><input type="radio" name="abroadEduFilter" value="全部" checked> 全部</label>
+      </div>
+
+      <div class="filter-row">
+        去向：
+        <label><input type="radio" name="abroadDestFilter" value="出国" checked> 出国</label>
+        <label><input type="radio" name="abroadDestFilter" value="全部"> 全部</label>
+      </div>
+
+      <div class="filter-row">
+        签约单位类型：
+        <label><input type="checkbox" name="abroadUnitFilter" value="国企" checked> 国企</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="部队" checked> 部队</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="政府" checked> 政府</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="民企" checked> 民企</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="合资" checked> 合资</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="其他" checked> 其他</label>
+      </div>
+    </div>
+
+    <div id="abroadGraduateList"></div>
   </div>
 </div>
 
@@ -615,7 +706,7 @@
     if (!v) return "";
     if (v.includes("就业")) return "就业";
     if (v.includes("升学")) return "升学";
-    if (v.includes("出国") || v.includes("留学")) return "出国";
+    if (v.includes("出国") || v.includes("留学") || v.includes("出境")) return "出国";
     return v;
   }
 
@@ -677,8 +768,29 @@
     return { edu, dest, unitTypes };
   }
 
+  function getAbroadFilters() {
+    const edu = document.querySelector('input[name="abroadEduFilter"]:checked')?.value || "全部";
+    const dest = document.querySelector('input[name="abroadDestFilter"]:checked')?.value || "出国";
+    const unitTypes = Array.from(document.querySelectorAll('input[name="abroadUnitFilter"]:checked')).map(i => i.value);
+    return { edu, dest, unitTypes };
+  }
+
   function matchPanelFilters(item) {
     const { edu, dest, unitTypes } = getPanelFilters();
+
+    if (edu === "本科生" && item.degree !== "本科生") return false;
+    if (edu === "研究生" && !isGraduateDegree(item.degree)) return false;
+    if (dest !== "全部" && item.destination !== dest) return false;
+
+    if (item.destination === "就业") {
+      if (!unitTypes.includes(item.unitType || "其他")) return false;
+    }
+
+    return true;
+  }
+
+  function matchAbroadFilters(item) {
+    const { edu, dest, unitTypes } = getAbroadFilters();
 
     if (edu === "本科生" && item.degree !== "本科生") return false;
     if (edu === "研究生" && !isGraduateDegree(item.degree)) return false;
@@ -698,6 +810,11 @@
     document.getElementById("doctorCount").innerText = data.filter(d => d.degree === "博士").length;
     document.getElementById("gradCount").innerText = data.filter(d => isGraduateDegree(d.degree)).length;
     syncFullscreenIfNeeded("summary");
+  }
+
+  function updateAbroadPanel(data) {
+    const abroadCount = data.filter(d => d.destination === "出国").length;
+    document.getElementById("abroadCount").innerText = `${abroadCount}人`;
   }
 
   function updateMap(data) {
@@ -943,6 +1060,21 @@
     `;
   }
 
+  function renderGraduateListHtml(data) {
+    if (data.length === 0) {
+      return `<div class="empty">暂无符合条件的毕业生数据</div>`;
+    }
+
+    return `
+      <div class="graduate-list-head">
+        <div>单位（签约性质）/学校名称</div>
+        <div style="text-align:center;">学生姓名</div>
+        <div style="text-align:right;">毕业年级</div>
+      </div>
+      ${data.map(renderGraduateRow).join("")}
+    `;
+  }
+
   function openProvincePanel(provinceName) {
     selectedProvince = provinceName;
     document.getElementById("provincePopup").style.display = "block";
@@ -961,21 +1093,25 @@
       .filter(matchPanelFilters);
 
     document.getElementById("popupTitle").innerText = `${selectedProvince}省（毕业生数：${data.length}人）`;
+    document.getElementById("graduateList").innerHTML = renderGraduateListHtml(data);
+  }
 
-    const list = document.getElementById("graduateList");
-    if (data.length === 0) {
-      list.innerHTML = `<div class="empty">暂无符合条件的毕业生数据</div>`;
-      return;
-    }
+  function openAbroadPopup() {
+    document.getElementById("abroadPopup").style.display = "block";
+    updateAbroadPopupList();
+  }
 
-    list.innerHTML = `
-      <div class="graduate-list-head">
-        <div>单位（签约性质）/学校名称</div>
-        <div style="text-align:center;">学生姓名</div>
-        <div style="text-align:right;">毕业年级</div>
-      </div>
-      ${data.map(renderGraduateRow).join("")}
-    `;
+  function closeAbroadPopup() {
+    document.getElementById("abroadPopup").style.display = "none";
+  }
+
+  function updateAbroadPopupList() {
+    const data = graduates
+      .filter(d => d.destination === "出国")
+      .filter(matchAbroadFilters);
+
+    document.getElementById("abroadPopupTitle").innerText = `出国出境学生信息（${data.length}人）`;
+    document.getElementById("abroadGraduateList").innerHTML = renderGraduateListHtml(data);
   }
 
   function applyPanelScale(panelId) {
@@ -1079,11 +1215,13 @@
 
   function updateAll() {
     updateSummary(graduates);
+    updateAbroadPanel(graduates);
     updateMap(graduates);
     updateMajorCharts(graduates);
     updateDestinationChart(graduates);
     updateUnitCharts(graduates);
     updateProvincePanel();
+    updateAbroadPopupList();
 
     Object.keys(panelScales).forEach(applyPanelScale);
   }
@@ -1108,16 +1246,17 @@
 
       selectedProvince = null;
       closePopup();
+      closeAbroadPopup();
       updateAll();
 
       document.getElementById("uploadStatus").innerText =
-        `在线 Excel 加载成功，共 ${graduates.length} 条（工作表：${firstSheetName}）`;
+        `加载成功，共 ${graduates.length} 条（工作表：${firstSheetName}）`;
     } catch (error) {
       console.error(error);
       graduates = [];
       updateAll();
       document.getElementById("uploadStatus").innerText =
-        "在线 Excel 加载失败，请检查 graduates.xlsx 是否存在且表头是否正确";
+        " 加载失败，请检查";
     }
   }
 
@@ -1130,6 +1269,9 @@
 
   document.querySelectorAll('input[name="eduFilter"], input[name="destFilter"], input[name="unitFilter"]')
     .forEach(input => input.addEventListener("change", updateProvincePanel));
+
+  document.querySelectorAll('input[name="abroadEduFilter"], input[name="abroadDestFilter"], input[name="abroadUnitFilter"]')
+    .forEach(input => input.addEventListener("change", updateAbroadPopupList));
 
   function bindPanelEvents() {
     const panelIds = ["summary", "underMajorPanel", "gradMajorPanel", "destinationPanel", "underUnitPanel", "gradUnitPanel"];
@@ -1151,6 +1293,8 @@
       });
     });
   }
+
+  document.getElementById("abroadPanel").addEventListener("click", openAbroadPopup);
 
   document.getElementById("panelFullscreenOverlay").addEventListener("click", function(e) {
     if (e.target === this) {
