@@ -101,6 +101,13 @@
       z-index: 5;
       backdrop-filter: blur(4px);
       overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+    }
+
+    .panel:hover {
+      box-shadow: inset 0 0 18px rgba(56,189,248,.12), 0 0 24px rgba(14,165,233,.4);
+      border-color: rgba(125,211,252,.8);
     }
 
     .panel::before {
@@ -122,6 +129,17 @@
       border-bottom: 1px solid rgba(125,211,252,.22);
       padding-bottom: 6px;
       text-shadow: 0 0 8px rgba(56,189,248,.55);
+      position: relative;
+      z-index: 2;
+      user-select: none;
+    }
+
+    .panel-content {
+      width: 100%;
+      height: calc(100% - 36px);
+      transform-origin: center center;
+      transition: transform .12s ease;
+      will-change: transform;
     }
 
     #summary { left: 14px; top: var(--panel-top); }
@@ -147,18 +165,19 @@
 
     .chart {
       width: 100%;
-      height: calc(100% - 36px);
+      height: 100%;
     }
 
     .summary-grid {
       width: 100%;
-      height: calc(100% - 36px);
+      height: 100%;
       display: grid;
       grid-template-columns: repeat(2, minmax(0,1fr));
       grid-template-rows: repeat(3, minmax(0,1fr));
       gap: 6px;
       font-size: 12px;
       overflow: hidden;
+      transform-origin: center center;
     }
 
     .summary-item {
@@ -297,6 +316,67 @@
       padding: 12px 0;
     }
 
+    .panel-fullscreen-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(2,8,23,.82);
+      backdrop-filter: blur(6px);
+    }
+
+    .panel-fullscreen-container {
+      position: absolute;
+      inset: 28px;
+      background: linear-gradient(180deg, rgba(8,47,73,.97), rgba(2,8,23,.98));
+      border: 1px solid rgba(56,189,248,.8);
+      border-radius: 14px;
+      box-shadow: 0 0 32px rgba(56,189,248,.32);
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .panel-fullscreen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 38px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(125,211,252,.22);
+    }
+
+    .panel-fullscreen-title {
+      color: #7dd3fc;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 8px rgba(56,189,248,.55);
+    }
+
+    .panel-fullscreen-body {
+      width: 100%;
+      height: calc(100% - 48px);
+      overflow: auto;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .panel-fullscreen-content {
+      width: 100%;
+      height: 100%;
+    }
+
+    .panel-action-tip {
+      position: absolute;
+      right: 10px;
+      bottom: 8px;
+      font-size: 11px;
+      color: rgba(186,230,253,.7);
+      pointer-events: none;
+      user-select: none;
+      z-index: 2;
+    }
+
     @media (max-height: 760px) {
       .panel h3 {
         height: 24px;
@@ -305,15 +385,17 @@
         margin-bottom: 6px;
       }
 
-      .summary-grid {
+      .panel-content {
         height: calc(100% - 30px);
+      }
+
+      .summary-grid {
         gap: 5px;
         font-size: 11px;
       }
 
       .summary-item { padding: 4px 6px; }
       .summary-value { font-size: 15px; }
-      .chart { height: calc(100% - 30px); }
     }
 
     @media (max-width: 1280px) {
@@ -340,42 +422,60 @@
     <span id="uploadStatus">正在加载在线 Excel 数据...</span>
   </div>
 
-  <div id="summary" class="panel">
+  <div id="summary" class="panel" data-panel-type="summary">
     <h3>毕业生概括</h3>
-    <div class="summary-grid">
-      <div class="summary-item">毕业生总数<span id="totalCount" class="summary-value">0</span></div>
-      <div class="summary-item">本科生人数<span id="underCount" class="summary-value">0</span></div>
-      <div class="summary-item">研究生人数<span id="gradCount" class="summary-value">0</span></div>
-      <div class="summary-item">硕士人数<span id="masterCount" class="summary-value">0</span></div>
-      <div class="summary-item">博士人数<span id="doctorCount" class="summary-value">0</span></div>
+    <div class="panel-content">
+      <div class="summary-grid">
+        <div class="summary-item">毕业生总数<span id="totalCount" class="summary-value">0</span></div>
+        <div class="summary-item">本科生人数<span id="underCount" class="summary-value">0</span></div>
+        <div class="summary-item">研究生人数<span id="gradCount" class="summary-value">0</span></div>
+        <div class="summary-item">硕士人数<span id="masterCount" class="summary-value">0</span></div>
+        <div class="summary-item">博士人数<span id="doctorCount" class="summary-value">0</span></div>
+      </div>
     </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
 
-  <div id="underMajorPanel" class="panel">
+  <div id="underMajorPanel" class="panel" data-panel-type="chart">
     <h3>本科生专业</h3>
-    <div id="underMajorChart" class="chart"></div>
+    <div class="panel-content">
+      <div id="underMajorChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
 
-  <div id="gradMajorPanel" class="panel">
+  <div id="gradMajorPanel" class="panel" data-panel-type="chart">
     <h3>研究生专业</h3>
-    <div id="gradMajorChart" class="chart"></div>
+    <div class="panel-content">
+      <div id="gradMajorChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
 
   <div id="map"></div>
 
-  <div id="destinationPanel" class="panel">
+  <div id="destinationPanel" class="panel" data-panel-type="chart">
     <h3>学生毕业去向统计</h3>
-    <div id="destinationChart" class="chart"></div>
+    <div class="panel-content">
+      <div id="destinationChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
 
-  <div id="underUnitPanel" class="panel">
+  <div id="underUnitPanel" class="panel" data-panel-type="chart">
     <h3>本科生签约单位性质</h3>
-    <div id="underUnitChart" class="chart"></div>
+    <div class="panel-content">
+      <div id="underUnitChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
 
-  <div id="gradUnitPanel" class="panel">
+  <div id="gradUnitPanel" class="panel" data-panel-type="chart">
     <h3>研究生签约单位性质</h3>
-    <div id="gradUnitChart" class="chart"></div>
+    <div class="panel-content">
+      <div id="gradUnitChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
   </div>
 
   <div id="provincePopup">
@@ -415,9 +515,22 @@
   </div>
 </div>
 
+<div id="panelFullscreenOverlay" class="panel-fullscreen-overlay">
+  <div class="panel-fullscreen-container">
+    <div class="panel-fullscreen-header">
+      <div id="panelFullscreenTitle" class="panel-fullscreen-title"></div>
+      <button class="close-btn" onclick="closePanelFullscreen()">关闭全屏</button>
+    </div>
+    <div class="panel-fullscreen-body">
+      <div id="panelFullscreenContent" class="panel-fullscreen-content"></div>
+    </div>
+  </div>
+</div>
+
 <script>
   let graduates = [];
   let selectedProvince = null;
+  let activeFullscreenPanelId = null;
 
   const EXCEL_FILE = "./graduates.xlsx";
 
@@ -433,6 +546,31 @@
   const destinationChart = echarts.init(document.getElementById("destinationChart"));
   const underUnitChart = echarts.init(document.getElementById("underUnitChart"));
   const gradUnitChart = echarts.init(document.getElementById("gradUnitChart"));
+
+  const chartInstances = {
+    underMajorChart,
+    gradMajorChart,
+    destinationChart,
+    underUnitChart,
+    gradUnitChart
+  };
+
+  const panelScales = {
+    summary: 1,
+    underMajorPanel: 1,
+    gradMajorPanel: 1,
+    destinationPanel: 1,
+    underUnitPanel: 1,
+    gradUnitPanel: 1
+  };
+
+  const panelChartMap = {
+    underMajorPanel: "underMajorChart",
+    gradMajorPanel: "gradMajorChart",
+    destinationPanel: "destinationChart",
+    underUnitPanel: "underUnitChart",
+    gradUnitPanel: "gradUnitChart"
+  };
 
   function normalizeText(value) {
     if (value === undefined || value === null) return "";
@@ -559,6 +697,7 @@
     document.getElementById("masterCount").innerText = data.filter(d => d.degree === "硕士").length;
     document.getElementById("doctorCount").innerText = data.filter(d => d.degree === "博士").length;
     document.getElementById("gradCount").innerText = data.filter(d => isGraduateDegree(d.degree)).length;
+    syncFullscreenIfNeeded("summary");
   }
 
   function updateMap(data) {
@@ -676,6 +815,9 @@
 
     renderBarChart(underMajorChart, countBy(underData, d => d.major || "未填写"));
     renderBarChart(gradMajorChart, countBy(gradData, d => d.major || "未填写"));
+
+    syncFullscreenIfNeeded("underMajorPanel");
+    syncFullscreenIfNeeded("gradMajorPanel");
   }
 
   function updateDestinationChart(data) {
@@ -734,6 +876,8 @@
         }
       }]
     }, true);
+
+    syncFullscreenIfNeeded("destinationPanel");
   }
 
   function renderPieChart(chart, obj) {
@@ -769,6 +913,9 @@
 
     renderPieChart(underUnitChart, countBy(underData, d => d.unitType || "其他"));
     renderPieChart(gradUnitChart, countBy(gradData, d => d.unitType || "其他"));
+
+    syncFullscreenIfNeeded("underUnitPanel");
+    syncFullscreenIfNeeded("gradUnitPanel");
   }
 
   function getOrganizationText(d) {
@@ -831,6 +978,105 @@
     `;
   }
 
+  function applyPanelScale(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const content = panel.querySelector(".panel-content");
+    if (!content) return;
+
+    const scale = panelScales[panelId] || 1;
+    content.style.transform = `scale(${scale})`;
+
+    const chartDomId = panelChartMap[panelId];
+    if (chartDomId && chartInstances[chartDomId]) {
+      setTimeout(() => chartInstances[chartDomId].resize(), 0);
+    }
+
+    if (activeFullscreenPanelId === panelId) {
+      syncFullscreenIfNeeded(panelId);
+    }
+  }
+
+  function changePanelScale(panelId, deltaY) {
+    const oldScale = panelScales[panelId] || 1;
+    const step = deltaY < 0 ? 0.08 : -0.08;
+    let newScale = +(oldScale + step).toFixed(2);
+    newScale = Math.max(0.7, Math.min(2.2, newScale));
+    panelScales[panelId] = newScale;
+    applyPanelScale(panelId);
+  }
+
+  function cloneSummaryToFullscreen() {
+    const source = document.querySelector("#summary .summary-grid");
+    const target = document.getElementById("panelFullscreenContent");
+    target.innerHTML = "";
+    const clone = source.cloneNode(true);
+    clone.style.height = "100%";
+    clone.style.fontSize = "18px";
+    clone.style.gap = "14px";
+    clone.querySelectorAll(".summary-item").forEach(item => {
+      item.style.padding = "14px 16px";
+    });
+    clone.querySelectorAll(".summary-value").forEach(item => {
+      item.style.fontSize = "32px";
+      item.style.marginTop = "8px";
+    });
+    target.appendChild(clone);
+  }
+
+  function cloneChartToFullscreen(panelId) {
+    const target = document.getElementById("panelFullscreenContent");
+    target.innerHTML = `<div id="fullscreenChart" style="width:100%;height:100%;"></div>`;
+    const sourceChartId = panelChartMap[panelId];
+    const sourceChart = chartInstances[sourceChartId];
+    const fullscreenChart = echarts.init(document.getElementById("fullscreenChart"));
+    const option = sourceChart.getOption();
+    fullscreenChart.setOption(option, true);
+    window.__fullscreenChartInstance = fullscreenChart;
+  }
+
+  function openPanelFullscreen(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    activeFullscreenPanelId = panelId;
+    const title = panel.querySelector("h3") ? panel.querySelector("h3").innerText : "面板分析";
+    document.getElementById("panelFullscreenTitle").innerText = title;
+    document.getElementById("panelFullscreenOverlay").style.display = "block";
+
+    if (panelId === "summary") {
+      cloneSummaryToFullscreen();
+    } else {
+      cloneChartToFullscreen(panelId);
+    }
+  }
+
+  function closePanelFullscreen() {
+    document.getElementById("panelFullscreenOverlay").style.display = "none";
+    document.getElementById("panelFullscreenContent").innerHTML = "";
+    activeFullscreenPanelId = null;
+    if (window.__fullscreenChartInstance) {
+      window.__fullscreenChartInstance.dispose();
+      window.__fullscreenChartInstance = null;
+    }
+  }
+
+  function syncFullscreenIfNeeded(panelId) {
+    if (activeFullscreenPanelId !== panelId) return;
+    if (document.getElementById("panelFullscreenOverlay").style.display !== "block") return;
+
+    if (panelId === "summary") {
+      cloneSummaryToFullscreen();
+    } else {
+      if (window.__fullscreenChartInstance) {
+        window.__fullscreenChartInstance.dispose();
+        window.__fullscreenChartInstance = null;
+      }
+      cloneChartToFullscreen(panelId);
+    }
+  }
+
   function updateAll() {
     updateSummary(graduates);
     updateMap(graduates);
@@ -838,6 +1084,8 @@
     updateDestinationChart(graduates);
     updateUnitCharts(graduates);
     updateProvincePanel();
+
+    Object.keys(panelScales).forEach(applyPanelScale);
   }
 
   async function loadDataFromExcel() {
@@ -883,6 +1131,39 @@
   document.querySelectorAll('input[name="eduFilter"], input[name="destFilter"], input[name="unitFilter"]')
     .forEach(input => input.addEventListener("change", updateProvincePanel));
 
+  function bindPanelEvents() {
+    const panelIds = ["summary", "underMajorPanel", "gradMajorPanel", "destinationPanel", "underUnitPanel", "gradUnitPanel"];
+
+    panelIds.forEach(panelId => {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+
+      panel.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        changePanelScale(panelId, e.deltaY);
+      }, { passive: false });
+
+      panel.addEventListener("click", (e) => {
+        const tag = (e.target.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "label" || tag === "button") return;
+        openPanelFullscreen(panelId);
+      });
+    });
+  }
+
+  document.getElementById("panelFullscreenOverlay").addEventListener("click", function(e) {
+    if (e.target === this) {
+      closePanelFullscreen();
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closePanelFullscreen();
+    }
+  });
+
   window.addEventListener("resize", () => {
     mapChart.resize();
     underMajorChart.resize();
@@ -890,8 +1171,13 @@
     destinationChart.resize();
     underUnitChart.resize();
     gradUnitChart.resize();
+
+    if (window.__fullscreenChartInstance) {
+      window.__fullscreenChartInstance.resize();
+    }
   });
 
+  bindPanelEvents();
   loadDataFromExcel();
 </script>
 </body>
