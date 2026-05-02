@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>交通物流学院毕业生去向驾驶舱</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --side-width: 330px;
+      --side-gap: 14px;
+      --panel-top: 58px;
+      --panel-bottom: 14px;
+      --panel-height: calc((100vh - 100px) / 3);
+    }
+
+    body {
+      margin: 0;
+      color: #fff;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at center, rgba(0,180,255,.2), transparent 36%),
+        radial-gradient(circle at 18% 18%, rgba(59,130,246,.18), transparent 30%),
+        radial-gradient(circle at 82% 72%, rgba(14,165,233,.16), transparent 28%),
+        linear-gradient(135deg, #020617 0%, #071526 45%, #020617 100%);
+    }
+
+    .dashboard {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      padding: 14px;
+    }
+
+    .dashboard::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(56,189,248,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,.055) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(circle at center, black, transparent 78%);
+    }
+
+    .title {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      z-index: 10;
+      color: #e0f2fe;
+      text-shadow: 0 0 8px rgba(56,189,248,.9), 0 0 18px rgba(14,165,233,.65);
+      white-space: nowrap;
+    }
+
+    .toolbar {
+      position: absolute;
+      right: 14px;
+      top: 12px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #uploadStatus {
+      max-width: 320px;
+      color: #bae6fd;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 6px 10px;
+      border: 1px solid rgba(56,189,248,.45);
+      border-radius: 6px;
+      background: linear-gradient(135deg, rgba(14,165,233,.18), rgba(2,8,23,.72));
+      box-shadow: 0 0 12px rgba(56,189,248,.18);
+    }
+
+    .panel {
+      position: absolute;
+      width: var(--side-width);
+      height: var(--panel-height);
+      background: linear-gradient(180deg, rgba(8,47,73,.9), rgba(2,8,23,.9));
+      border: 1px solid rgba(56,189,248,.55);
+      border-radius: 10px;
+      box-shadow: inset 0 0 18px rgba(56,189,248,.08), 0 0 18px rgba(14,165,233,.28);
+      padding: 10px;
+      z-index: 5;
+      backdrop-filter: blur(4px);
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+    }
+
+    .panel:hover {
+      box-shadow: inset 0 0 18px rgba(56,189,248,.12), 0 0 24px rgba(14,165,233,.4);
+      border-color: rgba(125,211,252,.8);
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+    }
+
+    .panel h3 {
+      margin: 0 0 8px;
+      height: 28px;
+      line-height: 22px;
+      font-size: 15px;
+      color: #7dd3fc;
+      border-bottom: 1px solid rgba(125,211,252,.22);
+      padding-bottom: 6px;
+      text-shadow: 0 0 8px rgba(56,189,248,.55);
+      position: relative;
+      z-index: 2;
+      user-select: none;
+    }
+
+    .panel-content {
+      width: 100%;
+      height: calc(100% - 36px);
+      transform-origin: center center;
+      transition: transform .12s ease;
+      will-change: transform;
+    }
+
+    #summary { left: 14px; top: var(--panel-top); }
+    #underMajorPanel { left: 14px; top: calc(var(--panel-top) + var(--panel-height) + var(--side-gap)); }
+    #gradMajorPanel { left: 14px; bottom: var(--panel-bottom); }
+
+    #destinationPanel { right: 14px; top: var(--panel-top); }
+    #underUnitPanel { right: 14px; top: calc(var(--panel-top) + var(--panel-height) + var(--side-gap)); }
+    #gradUnitPanel { right: 14px; bottom: var(--panel-bottom); }
+
+    #map {
+      position: absolute;
+      left: calc(var(--side-width) + 34px);
+      right: calc(var(--side-width) + 34px);
+      top: 108px;
+      bottom: 26px;
+      z-index: 1;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at center, rgba(14,165,233,.15), transparent 50%),
+        linear-gradient(180deg, rgba(2,8,23,.08), rgba(2,8,23,.22));
+    }
+
+    #abroadPanel {
+      position: absolute;
+      left: calc(var(--side-width) + 34px);
+      right: calc(var(--side-width) + 34px);
+      top: 60px;
+      height: 40px;
+      z-index: 6;
+      border-radius: 12px;
+      border: 1px solid rgba(56,189,248,.6);
+      background:
+        radial-gradient(circle at center, rgba(14,165,233,.12), transparent 58%),
+        linear-gradient(180deg, rgba(8,47,73,.88), rgba(2,8,23,.9));
+      box-shadow: inset 0 0 18px rgba(56,189,248,.08), 0 0 18px rgba(14,165,233,.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #93c5fd;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      cursor: pointer;
+      user-select: none;
+      transition: all .2s ease;
+      overflow: hidden;
+    }
+
+    #abroadPanel::before {
+      content: "";
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+    }
+
+    #abroadPanel:hover {
+      color: #e0f2fe;
+      border-color: rgba(125,211,252,.9);
+      box-shadow: inset 0 0 18px rgba(56,189,248,.12), 0 0 24px rgba(14,165,233,.35);
+      transform: translateY(-1px);
+    }
+
+    #abroadPanel .abroad-count {
+      margin-left: 10px;
+      color: #facc15;
+      text-shadow: 0 0 8px rgba(250,204,21,.5);
+    }
+
+    .chart {
+      width: 100%;
+      height: 100%;
+    }
+
+    .summary-grid {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      grid-template-rows: repeat(3, minmax(0,1fr));
+      gap: 6px;
+      font-size: 12px;
+      overflow: hidden;
+      transform-origin: center center;
+    }
+
+    .summary-item {
+      min-width: 0;
+      min-height: 0;
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(56,189,248,.16);
+      border-radius: 6px;
+      padding: 5px 7px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+      line-height: 1.15;
+    }
+
+    .summary-value {
+      display: block;
+      margin-top: 3px;
+      color: #facc15;
+      font-size: 17px;
+      line-height: 1.1;
+      font-weight: bold;
+      text-shadow: 0 0 8px rgba(250,204,21,.55);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #provincePopup, #abroadPopup {
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 720px;
+      max-height: 650px;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(180deg, rgba(4,20,38,.98), rgba(2,8,23,.98));
+      border: 1px solid #38bdf8;
+      border-radius: 12px;
+      padding: 14px;
+      z-index: 100;
+      box-shadow: 0 0 24px rgba(56,189,248,.5), inset 0 0 20px rgba(56,189,248,.08);
+    }
+
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #popupTitle, #abroadPopupTitle {
+      font-size: 18px;
+      font-weight: bold;
+      color: #93c5fd;
+      text-shadow: 0 0 8px rgba(147,197,253,.65);
+    }
+
+    .close-btn {
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, #ef4444, #991b1b);
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+    }
+
+    .filters {
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(56,189,248,.18);
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .filter-row { margin-bottom: 8px; }
+    .filter-row:last-child { margin-bottom: 0; }
+
+    label {
+      margin-right: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    input { vertical-align: middle; }
+
+    #graduateList, #abroadGraduateList {
+      max-height: 385px;
+      overflow-y: auto;
+      padding-right: 6px;
+      font-size: 14px;
+    }
+
+    .graduate-list-head {
+      display: grid;
+      grid-template-columns: minmax(260px,1fr) 120px 110px;
+      column-gap: 24px;
+      align-items: center;
+      height: 32px;
+      padding: 0 12px;
+      margin-bottom: 4px;
+      color: #7dd3fc;
+      background: rgba(56,189,248,.08);
+      border: 1px solid rgba(56,189,248,.16);
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .graduate-row {
+      display: grid;
+      grid-template-columns: minmax(260px,1fr) 120px 110px;
+      column-gap: 24px;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border-bottom: 1px dashed rgba(255,255,255,.15);
+      color: #e5e7eb;
+    }
+
+    .graduate-org, .graduate-name, .graduate-year {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .graduate-org { text-align: left; color: #e0f2fe; }
+    .graduate-name { text-align: center; color: #fef3c7; }
+    .graduate-year { text-align: right; color: #cbd5e1; }
+
+    .empty {
+      color: #94a3b8;
+      padding: 12px 0;
+    }
+
+    .panel-fullscreen-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(2,8,23,.82);
+      backdrop-filter: blur(6px);
+    }
+
+    .panel-fullscreen-container {
+      position: absolute;
+      inset: 28px;
+      background: linear-gradient(180deg, rgba(8,47,73,.97), rgba(2,8,23,.98));
+      border: 1px solid rgba(56,189,248,.8);
+      border-radius: 14px;
+      box-shadow: 0 0 32px rgba(56,189,248,.32);
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .panel-fullscreen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 38px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(125,211,252,.22);
+    }
+
+    .panel-fullscreen-title {
+      color: #7dd3fc;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 8px rgba(56,189,248,.55);
+    }
+
+    .panel-fullscreen-body {
+      width: 100%;
+      height: calc(100% - 48px);
+      overflow: auto;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .panel-fullscreen-content {
+      width: 100%;
+      height: 100%;
+    }
+
+    .panel-action-tip {
+      position: absolute;
+      right: 10px;
+      bottom: 8px;
+      font-size: 11px;
+      color: rgba(186,230,253,.7);
+      pointer-events: none;
+      user-select: none;
+      z-index: 2;
+    }
+
+    @media (max-height: 760px) {
+      .panel h3 {
+        height: 24px;
+        line-height: 18px;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+
+      .panel-content {
+        height: calc(100% - 30px);
+      }
+
+      .summary-grid {
+        gap: 5px;
+        font-size: 11px;
+      }
+
+      .summary-item { padding: 4px 6px; }
+      .summary-value { font-size: 15px; }
+
+      #map { top: 104px; }
+      #abroadPanel { top: 60px; height: 38px; }
+    }
+
+    @media (max-width: 1280px) {
+      :root { --side-width: 300px; }
+
+      .title { font-size: 24px; }
+      .panel h3 { font-size: 14px; }
+      .summary-value { font-size: 15px; }
+      #provincePopup, #abroadPopup { width: 660px; }
+
+      .graduate-list-head, .graduate-row {
+        grid-template-columns: minmax(220px,1fr) 100px 90px;
+        column-gap: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="dashboard">
+  <div class="title">交通物流学院毕业生去向驾驶舱</div>
+
+  <div class="toolbar">
+    <span id="uploadStatus">正在加载在线 Excel 数据...</span>
+  </div>
+
+  <div id="summary" class="panel" data-panel-type="summary">
+    <h3>毕业生概括</h3>
+    <div class="panel-content">
+      <div class="summary-grid">
+        <div class="summary-item">毕业生总数<span id="totalCount" class="summary-value">0</span></div>
+        <div class="summary-item">本科生人数<span id="underCount" class="summary-value">0</span></div>
+        <div class="summary-item">研究生人数<span id="gradCount" class="summary-value">0</span></div>
+        <div class="summary-item">硕士人数<span id="masterCount" class="summary-value">0</span></div>
+        <div class="summary-item">博士人数<span id="doctorCount" class="summary-value">0</span></div>
+      </div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
+  </div>
+
+  <div id="underMajorPanel" class="panel" data-panel-type="chart">
+    <h3>本科生专业</h3>
+    <div class="panel-content">
+      <div id="underMajorChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
+  </div>
+
+  <div id="gradMajorPanel" class="panel" data-panel-type="chart">
+    <h3>研究生专业</h3>
+    <div class="panel-content">
+      <div id="gradMajorChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
+  </div>
+
+  <div id="abroadPanel">
+    出国出境
+    <span id="abroadCount" class="abroad-count">0人</span>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="destinationPanel" class="panel" data-panel-type="chart">
+    <h3>学生毕业去向统计</h3>
+    <div class="panel-content">
+      <div id="destinationChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
+  </div>
+
+  <div id="underUnitPanel" class="panel" data-panel-type="chart">
+    <h3>本科生签约单位性质</h3>
+    <div class="panel-content">
+      <div id="underUnitChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
+  </div>
+
+  <div id="gradUnitPanel" class="panel" data-panel-type="chart">
+    <h3>研究生签约单位性质</h3>
+    <div class="panel-content">
+      <div id="gradUnitChart" class="chart"></div>
+    </div>
+    <div class="panel-action-tip">滚轮缩放 / 点击全屏</div>
+  </div>
+
+  <div id="provincePopup">
+    <div class="popup-header">
+      <div id="popupTitle"></div>
+      <button class="close-btn" onclick="closePopup()">关闭</button>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        学历：
+        <label><input type="radio" name="eduFilter" value="本科生"> 本科生</label>
+        <label><input type="radio" name="eduFilter" value="研究生"> 研究生</label>
+        <label><input type="radio" name="eduFilter" value="全部" checked> 全部</label>
+      </div>
+
+      <div class="filter-row">
+        去向：
+        <label><input type="radio" name="destFilter" value="就业"> 就业</label>
+        <label><input type="radio" name="destFilter" value="升学"> 升学</label>
+        <label><input type="radio" name="destFilter" value="出国"> 出国</label>
+        <label><input type="radio" name="destFilter" value="全部" checked> 全部</label>
+      </div>
+
+      <div class="filter-row">
+        签约单位类型：
+        <label><input type="checkbox" name="unitFilter" value="国企" checked> 国企</label>
+        <label><input type="checkbox" name="unitFilter" value="部队" checked> 部队</label>
+        <label><input type="checkbox" name="unitFilter" value="政府" checked> 政府</label>
+        <label><input type="checkbox" name="unitFilter" value="民企" checked> 民企</label>
+        <label><input type="checkbox" name="unitFilter" value="合资" checked> 合资</label>
+        <label><input type="checkbox" name="unitFilter" value="其他" checked> 其他</label>
+      </div>
+    </div>
+
+    <div id="graduateList"></div>
+  </div>
+
+  <div id="abroadPopup">
+    <div class="popup-header">
+      <div id="abroadPopupTitle"></div>
+      <button class="close-btn" onclick="closeAbroadPopup()">关闭</button>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        学历：
+        <label><input type="radio" name="abroadEduFilter" value="本科生"> 本科生</label>
+        <label><input type="radio" name="abroadEduFilter" value="研究生"> 研究生</label>
+        <label><input type="radio" name="abroadEduFilter" value="全部" checked> 全部</label>
+      </div>
+
+      <div class="filter-row">
+        去向：
+        <label><input type="radio" name="abroadDestFilter" value="出国" checked> 出国</label>
+        <label><input type="radio" name="abroadDestFilter" value="全部"> 全部</label>
+      </div>
+
+      <div class="filter-row">
+        签约单位类型：
+        <label><input type="checkbox" name="abroadUnitFilter" value="国企" checked> 国企</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="部队" checked> 部队</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="政府" checked> 政府</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="民企" checked> 民企</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="合资" checked> 合资</label>
+        <label><input type="checkbox" name="abroadUnitFilter" value="其他" checked> 其他</label>
+      </div>
+    </div>
+
+    <div id="abroadGraduateList"></div>
+  </div>
+</div>
+
+<div id="panelFullscreenOverlay" class="panel-fullscreen-overlay">
+  <div class="panel-fullscreen-container">
+    <div class="panel-fullscreen-header">
+      <div id="panelFullscreenTitle" class="panel-fullscreen-title"></div>
+      <button class="close-btn" onclick="closePanelFullscreen()">关闭全屏</button>
+    </div>
+    <div class="panel-fullscreen-body">
+      <div id="panelFullscreenContent" class="panel-fullscreen-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let graduates = [];
+  let selectedProvince = null;
+  let activeFullscreenPanelId = null;
+
+  const EXCEL_FILE = "./graduates.xlsx";
+
+  const provinces = [
+    "北京", "天津", "上海", "重庆", "河北", "河南", "云南", "辽宁", "黑龙江", "湖南", "安徽", "山东",
+    "新疆", "江苏", "浙江", "江西", "湖北", "广西", "甘肃", "山西", "内蒙古", "陕西", "吉林", "福建",
+    "贵州", "广东", "青海", "西藏", "四川", "宁夏", "海南", "台湾", "香港", "澳门"
+  ];
+
+  const mapChart = echarts.init(document.getElementById("map"));
+  const underMajorChart = echarts.init(document.getElementById("underMajorChart"));
+  const gradMajorChart = echarts.init(document.getElementById("gradMajorChart"));
+  const destinationChart = echarts.init(document.getElementById("destinationChart"));
+  const underUnitChart = echarts.init(document.getElementById("underUnitChart"));
+  const gradUnitChart = echarts.init(document.getElementById("gradUnitChart"));
+
+  const chartInstances = {
+    underMajorChart,
+    gradMajorChart,
+    destinationChart,
+    underUnitChart,
+    gradUnitChart
+  };
+
+  const panelScales = {
+    summary: 1,
+    underMajorPanel: 1,
+    gradMajorPanel: 1,
+    destinationPanel: 1,
+    underUnitPanel: 1,
+    gradUnitPanel: 1
+  };
+
+  const panelChartMap = {
+    underMajorPanel: "underMajorChart",
+    gradMajorPanel: "gradMajorChart",
+    destinationPanel: "destinationChart",
+    underUnitPanel: "underUnitChart",
+    gradUnitPanel: "gradUnitChart"
+  };
+
+  function normalizeText(value) {
+    if (value === undefined || value === null) return "";
+    return String(value).trim();
+  }
+
+  function normalizeProvince(value) {
+    const v = normalizeText(value)
+      .replace(/省$/g, "")
+      .replace(/市$/g, "")
+      .replace(/壮族自治区$/g, "")
+      .replace(/回族自治区$/g, "")
+      .replace(/维吾尔自治区$/g, "")
+      .replace(/自治区$/g, "")
+      .replace(/特别行政区$/g, "");
+
+    const mapping = {
+      "内蒙古": "内蒙古",
+      "广西": "广西",
+      "西藏": "西藏",
+      "宁夏": "宁夏",
+      "新疆": "新疆",
+      "香港": "香港",
+      "澳门": "澳门",
+      "台湾": "台湾"
+    };
+
+    return mapping[v] || v;
+  }
+
+  function normalizeDegree(value) {
+    const v = normalizeText(value);
+    if (!v) return "";
+    if (v.includes("本科")) return "本科生";
+    if (v.includes("硕士")) return "硕士";
+    if (v.includes("博士")) return "博士";
+    return v;
+  }
+
+  function normalizeDestination(value) {
+    const v = normalizeText(value);
+    if (!v) return "";
+    if (v.includes("就业")) return "就业";
+    if (v.includes("升学")) return "升学";
+    if (v.includes("出国") || v.includes("留学") || v.includes("出境")) return "出国";
+    return v;
+  }
+
+  function normalizeUnitType(value) {
+    const v = normalizeText(value);
+    if (!v) return "";
+    if (v.includes("国企")) return "国企";
+    if (v.includes("部队") || v.includes("军队")) return "部队";
+    if (v.includes("政府") || v.includes("机关")) return "政府";
+    if (v.includes("民企") || v.includes("民营")) return "民企";
+    if (v.includes("合资")) return "合资";
+    return v || "其他";
+  }
+
+  function pickValue(row, keys) {
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== "") {
+        return row[key];
+      }
+    }
+    return "";
+  }
+
+  function normalizeRows(rows) {
+    return rows.map(row => {
+      const degree = normalizeDegree(pickValue(row, ["degree", "学历", "层次"]));
+      const destination = normalizeDestination(pickValue(row, ["destination", "毕业去向", "去向"]));
+
+      return {
+        name: normalizeText(pickValue(row, ["name", "姓名"])),
+        year: normalizeText(pickValue(row, ["year", "毕业年级", "年级", "届别", "届"])),
+        degree,
+        province: normalizeProvince(pickValue(row, ["province", "省份", "签约省份", "去向省份", "地区"])),
+        destination,
+        organization: normalizeText(pickValue(row, ["organization", "单位名称", "去向单位", "升学院校", "学校名称", "签约单位"])),
+        unitType: normalizeUnitType(pickValue(row, ["unitType", "单位性质", "签约单位性质"])),
+        major: normalizeText(pickValue(row, ["major", "专业", "专业名称"]))
+      };
+    }).filter(item => item.province || item.major || item.destination || item.degree || item.organization || item.name);
+  }
+
+  function isGraduateDegree(degree) {
+    return degree === "硕士" || degree === "博士";
+  }
+
+  function countBy(arr, keyFn) {
+    const result = {};
+    arr.forEach(item => {
+      const key = keyFn(item) || "未填写";
+      result[key] = (result[key] || 0) + 1;
+    });
+    return result;
+  }
+
+  function getPanelFilters() {
+    const edu = document.querySelector('input[name="eduFilter"]:checked')?.value || "全部";
+    const dest = document.querySelector('input[name="destFilter"]:checked')?.value || "全部";
+    const unitTypes = Array.from(document.querySelectorAll('input[name="unitFilter"]:checked')).map(i => i.value);
+    return { edu, dest, unitTypes };
+  }
+
+  function getAbroadFilters() {
+    const edu = document.querySelector('input[name="abroadEduFilter"]:checked')?.value || "全部";
+    const dest = document.querySelector('input[name="abroadDestFilter"]:checked')?.value || "出国";
+    const unitTypes = Array.from(document.querySelectorAll('input[name="abroadUnitFilter"]:checked')).map(i => i.value);
+    return { edu, dest, unitTypes };
+  }
+
+  function matchPanelFilters(item) {
+    const { edu, dest, unitTypes } = getPanelFilters();
+
+    if (edu === "本科生" && item.degree !== "本科生") return false;
+    if (edu === "研究生" && !isGraduateDegree(item.degree)) return false;
+    if (dest !== "全部" && item.destination !== dest) return false;
+
+    if (item.destination === "就业") {
+      if (!unitTypes.includes(item.unitType || "其他")) return false;
+    }
+
+    return true;
+  }
+
+  function matchAbroadFilters(item) {
+    const { edu, dest, unitTypes } = getAbroadFilters();
+
+    if (edu === "本科生" && item.degree !== "本科生") return false;
+    if (edu === "研究生" && !isGraduateDegree(item.degree)) return false;
+    if (dest !== "全部" && item.destination !== dest) return false;
+
+    if (item.destination === "就业") {
+      if (!unitTypes.includes(item.unitType || "其他")) return false;
+    }
+
+    return true;
+  }
+
+  function updateSummary(data) {
+    document.getElementById("totalCount").innerText = data.length;
+    document.getElementById("underCount").innerText = data.filter(d => d.degree === "本科生").length;
+    document.getElementById("masterCount").innerText = data.filter(d => d.degree === "硕士").length;
+    document.getElementById("doctorCount").innerText = data.filter(d => d.degree === "博士").length;
+    document.getElementById("gradCount").innerText = data.filter(d => isGraduateDegree(d.degree)).length;
+    syncFullscreenIfNeeded("summary");
+  }
+
+  function updateAbroadPanel(data) {
+    const abroadCount = data.filter(d => d.destination === "出国").length;
+    document.getElementById("abroadCount").innerText = `${abroadCount}人`;
+  }
+
+  function updateMap(data) {
+    const provinceCounts = countBy(data, d => d.province);
+    const mapData = provinces.map(name => ({ name, value: provinceCounts[name] || 0 }));
+    const max = Math.max(...mapData.map(v => v.value), 1);
+
+    mapChart.setOption({
+      backgroundColor: "transparent",
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(2, 8, 23, 0.94)",
+        borderColor: "#38bdf8",
+        borderWidth: 1,
+        textStyle: { color: "#e0f2fe", fontSize: 13 },
+        formatter: p => `${p.name}<br/>毕业生数：${p.value || 0}人`
+      },
+      visualMap: {
+        min: 0,
+        max,
+        left: "center",
+        bottom: 18,
+        text: ["高", "低"],
+        calculable: true,
+        itemWidth: 14,
+        itemHeight: 90,
+        inRange: { color: ["#0f172a", "#075985", "#0284c7", "#38bdf8", "#e0f2fe"] },
+        outOfRange: { color: ["#334155"] },
+        textStyle: {
+          color: "#dbeafe",
+          fontSize: 12,
+          fontWeight: "bold",
+          textShadowColor: "#000",
+          textShadowBlur: 4
+        }
+      },
+      series: [{
+        name: "毕业生去向",
+        type: "map",
+        mapType: "china",
+        roam: true,
+        zoom: 1.18,
+        data: mapData,
+        label: {
+          normal: {
+            show: true,
+            color: "#ffffff",
+            fontSize: 12,
+            fontWeight: "bold",
+            textBorderColor: "rgba(0, 0, 0, 0.98)",
+            textBorderWidth: 3,
+            textShadowColor: "rgba(0, 0, 0, 1)",
+            textShadowBlur: 8
+          },
+          emphasis: {
+            show: true,
+            color: "#fff7ed",
+            fontSize: 13,
+            fontWeight: "bold",
+            textBorderColor: "rgba(0, 0, 0, 1)",
+            textBorderWidth: 4,
+            textShadowColor: "rgba(250, 204, 21, 1)",
+            textShadowBlur: 8
+          }
+        },
+        itemStyle: {
+          normal: {
+            areaColor: "#0f172a",
+            borderColor: "#38bdf8",
+            borderWidth: 1,
+            shadowColor: "rgba(56, 189, 248, 0.55)",
+            shadowBlur: 12
+          },
+          emphasis: {
+            areaColor: "#facc15",
+            borderColor: "#ffffff",
+            borderWidth: 1.5,
+            shadowColor: "rgba(250, 204, 21, 0.9)",
+            shadowBlur: 18
+          }
+        }
+      }]
+    }, true);
+  }
+
+  function wrapAxisLabel(text, maxLen = 8) {
+    const value = String(text || "");
+    if (value.length <= maxLen) return value;
+    const lines = [];
+    for (let i = 0; i < value.length; i += maxLen) {
+      lines.push(value.slice(i, i + maxLen));
+    }
+    return lines.join("\n");
+  }
+
+  function renderBarChart(chart, obj) {
+    const entries = Object.entries(obj).sort((a, b) => b[1] - a[1]);
+
+    chart.setOption({
+      grid: {
+        left: 145,
+        right: 20,
+        top: 16,
+        bottom: 28,
+        containLabel: false
+      },
+      tooltip: {
+        trigger: "axis",
+        confine: true,
+        axisPointer: { type: "shadow" },
+        formatter: params => {
+          const p = params[0];
+          return `${p.name}<br/>人数：${p.value}人`;
+        }
+      },
+      xAxis: {
+        type: "value",
+        axisLabel: { color: "#cbd5e1" },
+        axisLine: { lineStyle: { color: "rgba(148,163,184,.45)" } },
+        splitLine: { lineStyle: { color: "rgba(255, 255, 255, 0.08)" } }
+      },
+      yAxis: {
+        type: "category",
+        data: entries.length ? entries.map(e => e[0]) : ["暂无数据"],
+        axisTick: { show: false },
+        axisLine: { show: false },
+        axisLabel: {
+          color: "#cbd5e1",
+          fontSize: 11,
+          interval: 0,
+          width: 128,
+          overflow: "break",
+          lineHeight: 14,
+          align: "right",
+          margin: 10,
+          formatter: function(value) {
+            return wrapAxisLabel(value, 8);
+          }
+        }
+      },
+      series: [{
+        name: "人数",
+        type: "bar",
+        data: entries.length ? entries.map(e => e[1]) : [0],
+        barWidth: 14,
+        itemStyle: {
+          color: "#38bdf8",
+          barBorderRadius: [0, 3, 3, 0]
+        },
+        label: {
+          show: true,
+          position: "right",
+          color: "#e2e8f0",
+          fontSize: 10
+        }
+      }]
+    }, true);
+  }
+
+  function updateMajorCharts(data) {
+    const underData = data.filter(d => d.degree === "本科生");
+    const gradData = data.filter(d => isGraduateDegree(d.degree));
+
+    renderBarChart(underMajorChart, countBy(underData, d => d.major || "未填写"));
+    renderBarChart(gradMajorChart, countBy(gradData, d => d.major || "未填写"));
+
+    syncFullscreenIfNeeded("underMajorPanel");
+    syncFullscreenIfNeeded("gradMajorPanel");
+  }
+
+  function updateDestinationChart(data) {
+    const degreeGroups = [
+      { label: "本科生", matcher: d => d.degree === "本科生" },
+      { label: "硕士生", matcher: d => d.degree === "硕士" },
+      { label: "博士生", matcher: d => d.degree === "博士" }
+    ];
+
+    const destinations = ["就业", "升学", "出国"];
+    const xNames = [];
+    const values = [];
+    const ratios = [];
+
+    degreeGroups.forEach(group => {
+      const groupData = data.filter(group.matcher);
+      const total = groupData.length || 1;
+
+      destinations.forEach(dest => {
+        const count = groupData.filter(d => d.destination === dest).length;
+        xNames.push(`${group.label}${dest}`);
+        values.push(count);
+        ratios.push(((count / total) * 100).toFixed(1));
+      });
+    });
+
+    destinationChart.setOption({
+      grid: { left: 42, right: 18, top: 20, bottom: 72 },
+      tooltip: {
+        trigger: "axis",
+        confine: true,
+        formatter: params => {
+          const p = params[0];
+          return `${p.name}<br/>人数：${p.value}人<br/>比例：${ratios[p.dataIndex]}%`;
+        }
+      },
+      xAxis: {
+        type: "category",
+        data: xNames,
+        axisLabel: { color: "#cbd5e1", rotate: 32, fontSize: 11, margin: 12 },
+        axisLine: { lineStyle: { color: "rgba(148,163,184,.45)" } }
+      },
+      yAxis: {
+        type: "value",
+        axisLabel: { color: "#cbd5e1" },
+        axisLine: { show: false },
+        splitLine: { lineStyle: { color: "rgba(255, 255, 255, 0.08)" } }
+      },
+      series: [{
+        name: "人数",
+        type: "bar",
+        data: values,
+        barWidth: 16,
+        itemStyle: {
+          color: params => {
+            const colors = ["#22c55e", "#3b82f6", "#f59e0b"];
+            return colors[params.dataIndex % 3];
+          },
+          barBorderRadius: [3, 3, 0, 0]
+        },
+        label: {
+          show: true,
+          position: "top",
+          color: "#e2e8f0",
+          fontSize: 10
+        }
+      }]
+    }, true);
+
+    syncFullscreenIfNeeded("destinationPanel");
+  }
+
+  function renderPieChart(chart, obj) {
+    let data = Object.entries(obj).map(([name, value]) => ({ name, value }));
+    if (!data.length) data = [{ name: "暂无数据", value: 0 }];
+
+    const colorList = [
+      "#38bdf8", "#f59e0b", "#22c55e", "#ef4444", "#a78bfa",
+      "#f97316", "#14b8a6", "#eab308", "#94a3b8", "#fb7185"
+    ];
+
+    chart.setOption({
+      color: colorList,
+      tooltip: {
+        trigger: "item",
+        confine: true,
+        formatter: "{b}<br/>人数：{c}人<br/>占比：{d}%"
+      },
+      legend: {
+        type: "scroll",
+        bottom: 0,
+        left: "center",
+        right: 8,
+        itemWidth: 14,
+        itemHeight: 10,
+        textStyle: {
+          color: "#cbd5e1",
+          fontSize: 10
+        },
+        pageIconColor: "#38bdf8",
+        pageTextStyle: { color: "#cbd5e1" }
+      },
+      series: [{
+        type: "pie",
+        radius: ["18%", "42%"],
+        center: ["50%", "34%"],
+        avoidLabelOverlap: true,
+        minAngle: 4,
+        label: {
+          show: true,
+          color: "#e5e7eb",
+          fontSize: 10,
+          formatter: function(params) {
+            if (params.percent < 6) return "";
+            return `${params.name}: ${params.value}`;
+          }
+        },
+        labelLine: {
+          show: true,
+          length: 8,
+          length2: 6,
+          lineStyle: {
+            color: "rgba(226,232,240,.75)"
+          }
+        },
+        data
+      }]
+    }, true);
+  }
+
+  function updateUnitCharts(data) {
+    const employmentData = data.filter(d => d.destination === "就业");
+    const underData = employmentData.filter(d => d.degree === "本科生");
+    const gradData = employmentData.filter(d => isGraduateDegree(d.degree));
+
+    renderPieChart(underUnitChart, countBy(underData, d => d.unitType || "其他"));
+    renderPieChart(gradUnitChart, countBy(gradData, d => d.unitType || "其他"));
+
+    syncFullscreenIfNeeded("underUnitPanel");
+    syncFullscreenIfNeeded("gradUnitPanel");
+  }
+
+  function getOrganizationText(d) {
+    if (d.destination === "就业") {
+      return `${d.organization || "未填写单位"}（${d.unitType || "其他"}）`;
+    }
+    return `${d.organization || "未填写学校"}`;
+  }
+
+  function getGraduatePlainText(d) {
+    return `${getOrganizationText(d)} ${d.name || ""} ${d.year || ""}`;
+  }
+
+  function renderGraduateRow(d) {
+    const org = getOrganizationText(d);
+    const name = d.name || "";
+    const year = d.year || "";
+
+    return `
+      <div class="graduate-row" title="${getGraduatePlainText(d)}">
+        <div class="graduate-org">${org}</div>
+        <div class="graduate-name">${name}</div>
+        <div class="graduate-year">${year}</div>
+      </div>
+    `;
+  }
+
+  function renderGraduateListHtml(data) {
+    if (data.length === 0) {
+      return `<div class="empty">暂无符合条件的毕业生数据</div>`;
+    }
+
+    return `
+      <div class="graduate-list-head">
+        <div>单位（签约性质）/学校名称</div>
+        <div style="text-align:center;">学生姓名</div>
+        <div style="text-align:right;">毕业年级</div>
+      </div>
+      ${data.map(renderGraduateRow).join("")}
+    `;
+  }
+
+  function openProvincePanel(provinceName) {
+    selectedProvince = provinceName;
+    document.getElementById("provincePopup").style.display = "block";
+    updateProvincePanel();
+  }
+
+  function closePopup() {
+    document.getElementById("provincePopup").style.display = "none";
+  }
+
+  function updateProvincePanel() {
+    if (!selectedProvince) return;
+
+    const data = graduates
+      .filter(d => d.province === selectedProvince)
+      .filter(matchPanelFilters);
+
+    document.getElementById("popupTitle").innerText = `${selectedProvince}省（毕业生数：${data.length}人）`;
+    document.getElementById("graduateList").innerHTML = renderGraduateListHtml(data);
+  }
+
+  function openAbroadPopup() {
+    document.getElementById("abroadPopup").style.display = "block";
+    updateAbroadPopupList();
+  }
+
+  function closeAbroadPopup() {
+    document.getElementById("abroadPopup").style.display = "none";
+  }
+
+  function updateAbroadPopupList() {
+    const data = graduates
+      .filter(d => d.destination === "出国")
+      .filter(matchAbroadFilters);
+
+    document.getElementById("abroadPopupTitle").innerText = `出国出境学生信息（${data.length}人）`;
+    document.getElementById("abroadGraduateList").innerHTML = renderGraduateListHtml(data);
+  }
+
+  function applyPanelScale(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const content = panel.querySelector(".panel-content");
+    if (!content) return;
+
+    const scale = panelScales[panelId] || 1;
+    content.style.transform = `scale(${scale})`;
+
+    const chartDomId = panelChartMap[panelId];
+    if (chartDomId && chartInstances[chartDomId]) {
+      setTimeout(() => chartInstances[chartDomId].resize(), 0);
+    }
+
+    if (activeFullscreenPanelId === panelId) {
+      syncFullscreenIfNeeded(panelId);
+    }
+  }
+
+  function changePanelScale(panelId, deltaY) {
+    const oldScale = panelScales[panelId] || 1;
+    const step = deltaY < 0 ? 0.08 : -0.08;
+    let newScale = +(oldScale + step).toFixed(2);
+    newScale = Math.max(0.7, Math.min(2.2, newScale));
+    panelScales[panelId] = newScale;
+    applyPanelScale(panelId);
+  }
+
+  function cloneSummaryToFullscreen() {
+    const source = document.querySelector("#summary .summary-grid");
+    const target = document.getElementById("panelFullscreenContent");
+    target.innerHTML = "";
+    const clone = source.cloneNode(true);
+    clone.style.height = "100%";
+    clone.style.fontSize = "18px";
+    clone.style.gap = "14px";
+    clone.querySelectorAll(".summary-item").forEach(item => {
+      item.style.padding = "14px 16px";
+    });
+    clone.querySelectorAll(".summary-value").forEach(item => {
+      item.style.fontSize = "32px";
+      item.style.marginTop = "8px";
+    });
+    target.appendChild(clone);
+  }
+
+  function cloneChartToFullscreen(panelId) {
+    const target = document.getElementById("panelFullscreenContent");
+    target.innerHTML = `<div id="fullscreenChart" style="width:100%;height:100%;"></div>`;
+    const sourceChartId = panelChartMap[panelId];
+    const sourceChart = chartInstances[sourceChartId];
+    const fullscreenChart = echarts.init(document.getElementById("fullscreenChart"));
+    const option = sourceChart.getOption();
+    fullscreenChart.setOption(option, true);
+    window.__fullscreenChartInstance = fullscreenChart;
+  }
+
+  function openPanelFullscreen(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    activeFullscreenPanelId = panelId;
+    const title = panel.querySelector("h3") ? panel.querySelector("h3").innerText : "面板分析";
+    document.getElementById("panelFullscreenTitle").innerText = title;
+    document.getElementById("panelFullscreenOverlay").style.display = "block";
+
+    if (panelId === "summary") {
+      cloneSummaryToFullscreen();
+    } else {
+      cloneChartToFullscreen(panelId);
+    }
+  }
+
+  function closePanelFullscreen() {
+    document.getElementById("panelFullscreenOverlay").style.display = "none";
+    document.getElementById("panelFullscreenContent").innerHTML = "";
+    activeFullscreenPanelId = null;
+    if (window.__fullscreenChartInstance) {
+      window.__fullscreenChartInstance.dispose();
+      window.__fullscreenChartInstance = null;
+    }
+  }
+
+  function syncFullscreenIfNeeded(panelId) {
+    if (activeFullscreenPanelId !== panelId) return;
+    if (document.getElementById("panelFullscreenOverlay").style.display !== "block") return;
+
+    if (panelId === "summary") {
+      cloneSummaryToFullscreen();
+    } else {
+      if (window.__fullscreenChartInstance) {
+        window.__fullscreenChartInstance.dispose();
+        window.__fullscreenChartInstance = null;
+      }
+      cloneChartToFullscreen(panelId);
+    }
+  }
+
+  function updateAll() {
+    updateSummary(graduates);
+    updateAbroadPanel(graduates);
+    updateMap(graduates);
+    updateMajorCharts(graduates);
+    updateDestinationChart(graduates);
+    updateUnitCharts(graduates);
+    updateProvincePanel();
+    updateAbroadPopupList();
+
+    Object.keys(panelScales).forEach(applyPanelScale);
+  }
+
+  async function loadDataFromExcel() {
+    try {
+      document.getElementById("uploadStatus").innerText = "正在读取 graduates.xlsx ...";
+
+      const response = await fetch(EXCEL_FILE + "?t=" + Date.now());
+      if (!response.ok) throw new Error("未找到 graduates.xlsx");
+
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) throw new Error("Excel 中没有工作表");
+
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      graduates = normalizeRows(rows);
+
+      selectedProvince = null;
+      closePopup();
+      closeAbroadPopup();
+      updateAll();
+
+      document.getElementById("uploadStatus").innerText =
+        `在线 Excel 加载成功，共 ${graduates.length} 条（工作表：${firstSheetName}）`;
+    } catch (error) {
+      console.error(error);
+      graduates = [];
+      updateAll();
+      document.getElementById("uploadStatus").innerText =
+        "在线 Excel 加载失败，请检查 graduates.xlsx 是否存在且表头是否正确";
+    }
+  }
+
+  mapChart.on("click", params => {
+    if (!params || !params.name) return;
+    if (provinces.includes(params.name)) {
+      openProvincePanel(params.name);
+    }
+  });
+
+  document.querySelectorAll('input[name="eduFilter"], input[name="destFilter"], input[name="unitFilter"]')
+    .forEach(input => input.addEventListener("change", updateProvincePanel));
+
+  document.querySelectorAll('input[name="abroadEduFilter"], input[name="abroadDestFilter"], input[name="abroadUnitFilter"]')
+    .forEach(input => input.addEventListener("change", updateAbroadPopupList));
+
+  function bindPanelEvents() {
+    const panelIds = ["summary", "underMajorPanel", "gradMajorPanel", "destinationPanel", "underUnitPanel", "gradUnitPanel"];
+
+    panelIds.forEach(panelId => {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+
+      panel.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        changePanelScale(panelId, e.deltaY);
+      }, { passive: false });
+
+      panel.addEventListener("click", (e) => {
+        const tag = (e.target.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "label" || tag === "button") return;
+        openPanelFullscreen(panelId);
+      });
+    });
+  }
+
+  document.getElementById("abroadPanel").addEventListener("click", openAbroadPopup);
+
+  document.getElementById("panelFullscreenOverlay").addEventListener("click", function(e) {
+    if (e.target === this) {
+      closePanelFullscreen();
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closePanelFullscreen();
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    mapChart.resize();
+    underMajorChart.resize();
+    gradMajorChart.resize();
+    destinationChart.resize();
+    underUnitChart.resize();
+    gradUnitChart.resize();
+
+    if (window.__fullscreenChartInstance) {
+      window.__fullscreenChartInstance.resize();
+    }
+  });
+  bindPanelEvents();
+  loadDataFromExcel();
+  <h4>by喻琪宁</h4>
+</script>
+</body>
+</html>
