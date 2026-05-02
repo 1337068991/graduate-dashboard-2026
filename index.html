@@ -426,6 +426,18 @@
       z-index: 2;
     }
 
+    .author {
+      position: fixed;
+      right: 16px;
+      bottom: 8px;
+      z-index: 999;
+      font-size: 12px;
+      color: rgba(186,230,253,.75);
+      text-shadow: 0 0 6px rgba(56,189,248,.35);
+      user-select: none;
+      pointer-events: none;
+    }
+
     @media (max-height: 760px) {
       .panel h3 {
         height: 24px;
@@ -618,6 +630,8 @@
   </div>
 </div>
 
+<div class="author">by 喻琪宁</div>
+
 <script>
   let graduates = [];
   let selectedProvince = null;
@@ -718,6 +732,7 @@
     if (v.includes("政府") || v.includes("机关")) return "政府";
     if (v.includes("民企") || v.includes("民营")) return "民企";
     if (v.includes("合资")) return "合资";
+    if (v.includes("其他")) return "其他";
     return v || "其他";
   }
 
@@ -1320,8 +1335,10 @@
     try {
       document.getElementById("uploadStatus").innerText = "正在读取 graduates.xlsx ...";
 
-      const response = await fetch(EXCEL_FILE + "?t=" + Date.now());
-      if (!response.ok) throw new Error("未找到 graduates.xlsx");
+      const response = await fetch(EXCEL_FILE + "?t=" + Date.now(), { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("未找到 graduates.xlsx，HTTP状态码：" + response.status);
+      }
 
       const arrayBuffer = await response.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
@@ -1342,11 +1359,11 @@
       document.getElementById("uploadStatus").innerText =
         `在线 Excel 加载成功，共 ${graduates.length} 条（工作表：${firstSheetName}）`;
     } catch (error) {
-      console.error(error);
+      console.error("Excel加载失败：", error);
       graduates = [];
       updateAll();
       document.getElementById("uploadStatus").innerText =
-        "在线 Excel 加载失败，请检查 graduates.xlsx 是否存在且表头是否正确";
+        "在线 Excel 加载失败，请检查 graduates.xlsx 是否存在、文件名大小写是否一致、表头是否正确";
     }
   }
 
@@ -1410,9 +1427,9 @@
       window.__fullscreenChartInstance.resize();
     }
   });
+
   bindPanelEvents();
   loadDataFromExcel();
-
 </script>
 </body>
 </html>
