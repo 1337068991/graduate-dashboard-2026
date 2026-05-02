@@ -15,9 +15,9 @@
     :root {
       --side-width: 330px;
       --side-gap: 14px;
-      --panel-top: 58px;
+      --panel-top: 72px;
       --panel-bottom: 14px;
-      --panel-height: calc((100vh - 100px) / 3);
+      --panel-height: calc((100vh - 116px) / 3);
     }
 
     body {
@@ -51,18 +51,33 @@
       mask-image: radial-gradient(circle at center, black, transparent 78%);
     }
 
-    .title {
+    .header {
       position: absolute;
-      top: 12px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 12;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .title {
       font-size: 28px;
       font-weight: bold;
       letter-spacing: 4px;
-      z-index: 10;
       color: #e0f2fe;
       text-shadow: 0 0 8px rgba(56,189,248,.9), 0 0 18px rgba(14,165,233,.65);
       white-space: nowrap;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      font-size: 13px;
+      color: #bae6fd;
+      letter-spacing: 1px;
+      text-shadow: 0 0 6px rgba(56,189,248,.45);
+      line-height: 1.1;
     }
 
     .toolbar {
@@ -140,6 +155,7 @@
       transform-origin: center center;
       transition: transform .12s ease;
       will-change: transform;
+      overflow: hidden;
     }
 
     #summary { left: 14px; top: var(--panel-top); }
@@ -154,7 +170,7 @@
       position: absolute;
       left: calc(var(--side-width) + 34px);
       right: calc(var(--side-width) + 34px);
-      top: 108px;
+      top: 122px;
       bottom: 26px;
       z-index: 1;
       border-radius: 20px;
@@ -167,8 +183,8 @@
       position: absolute;
       left: calc(var(--side-width) + 34px);
       right: calc(var(--side-width) + 34px);
-      top: 60px;
-      height: 40px;
+      top: 72px;
+      height: 42px;
       z-index: 6;
       border-radius: 12px;
       border: 1px solid rgba(56,189,248,.6);
@@ -223,7 +239,7 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0,1fr));
       grid-template-rows: repeat(3, minmax(0,1fr));
-      gap: 6px;
+      gap: 8px;
       font-size: 12px;
       overflow: hidden;
       transform-origin: center center;
@@ -235,19 +251,19 @@
       background: rgba(255,255,255,.055);
       border: 1px solid rgba(56,189,248,.16);
       border-radius: 6px;
-      padding: 5px 7px;
+      padding: 6px 8px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       overflow: hidden;
-      line-height: 1.15;
+      line-height: 1.2;
     }
 
     .summary-value {
       display: block;
-      margin-top: 3px;
+      margin-top: 4px;
       color: #facc15;
-      font-size: 17px;
+      font-size: 18px;
       line-height: 1.1;
       font-weight: bold;
       text-shadow: 0 0 8px rgba(250,204,21,.55);
@@ -426,18 +442,6 @@
       z-index: 2;
     }
 
-    .author {
-      position: fixed;
-      right: 16px;
-      bottom: 8px;
-      z-index: 999;
-      font-size: 12px;
-      color: rgba(186,230,253,.75);
-      text-shadow: 0 0 6px rgba(56,189,248,.35);
-      user-select: none;
-      pointer-events: none;
-    }
-
     @media (max-height: 760px) {
       .panel h3 {
         height: 24px;
@@ -451,21 +455,26 @@
       }
 
       .summary-grid {
-        gap: 5px;
+        gap: 6px;
         font-size: 11px;
       }
 
       .summary-item { padding: 4px 6px; }
       .summary-value { font-size: 15px; }
 
-      #map { top: 104px; }
-      #abroadPanel { top: 60px; height: 38px; }
+      #map { top: 118px; }
+      #abroadPanel { top: 72px; height: 38px; }
+      .title { font-size: 24px; }
+      .subtitle { font-size: 12px; }
     }
 
     @media (max-width: 1280px) {
-      :root { --side-width: 300px; }
+      :root {
+        --side-width: 300px;
+      }
 
       .title { font-size: 24px; }
+      .subtitle { font-size: 12px; }
       .panel h3 { font-size: 14px; }
       .summary-value { font-size: 15px; }
       #provincePopup, #abroadPopup { width: 660px; }
@@ -480,7 +489,10 @@
 
 <body>
 <div class="dashboard">
-  <div class="title">交通物流学院毕业生去向驾驶舱</div>
+  <div class="header">
+    <div class="title">交通物流学院毕业生去向驾驶舱</div>
+    <div class="subtitle">by 喻琪宁</div>
+  </div>
 
   <div class="toolbar">
     <span id="uploadStatus">正在加载在线 Excel 数据...</span>
@@ -629,8 +641,6 @@
     </div>
   </div>
 </div>
-
-<div class="author">by 喻琪宁</div>
 
 <script>
   let graduates = [];
@@ -930,10 +940,10 @@
 
     chart.setOption({
       grid: {
-        left: 145,
-        right: 20,
-        top: 16,
-        bottom: 28,
+        left: 150,
+        right: 24,
+        top: 14,
+        bottom: 24,
         containLabel: false
       },
       tooltip: {
@@ -947,7 +957,7 @@
       },
       xAxis: {
         type: "value",
-        axisLabel: { color: "#cbd5e1" },
+        axisLabel: { color: "#cbd5e1", fontSize: 11 },
         axisLine: { lineStyle: { color: "rgba(148,163,184,.45)" } },
         splitLine: { lineStyle: { color: "rgba(255, 255, 255, 0.08)" } }
       },
@@ -960,7 +970,7 @@
           color: "#cbd5e1",
           fontSize: 11,
           interval: 0,
-          width: 128,
+          width: 130,
           overflow: "break",
           lineHeight: 14,
           align: "right",
@@ -974,7 +984,8 @@
         name: "人数",
         type: "bar",
         data: entries.length ? entries.map(e => e[1]) : [0],
-        barWidth: 14,
+        barWidth: 12,
+        barCategoryGap: "35%",
         itemStyle: {
           color: "#38bdf8",
           barBorderRadius: [0, 3, 3, 0]
@@ -983,7 +994,8 @@
           show: true,
           position: "right",
           color: "#e2e8f0",
-          fontSize: 10
+          fontSize: 10,
+          distance: 4
         }
       }]
     }, true);
@@ -1025,7 +1037,7 @@
     });
 
     destinationChart.setOption({
-      grid: { left: 42, right: 18, top: 20, bottom: 72 },
+      grid: { left: 42, right: 18, top: 20, bottom: 76 },
       tooltip: {
         trigger: "axis",
         confine: true,
@@ -1037,12 +1049,12 @@
       xAxis: {
         type: "category",
         data: xNames,
-        axisLabel: { color: "#cbd5e1", rotate: 32, fontSize: 11, margin: 12 },
+        axisLabel: { color: "#cbd5e1", rotate: 30, fontSize: 11, margin: 12 },
         axisLine: { lineStyle: { color: "rgba(148,163,184,.45)" } }
       },
       yAxis: {
         type: "value",
-        axisLabel: { color: "#cbd5e1" },
+        axisLabel: { color: "#cbd5e1", fontSize: 11 },
         axisLine: { show: false },
         splitLine: { lineStyle: { color: "rgba(255, 255, 255, 0.08)" } }
       },
@@ -1088,11 +1100,12 @@
       },
       legend: {
         type: "scroll",
-        bottom: 0,
-        left: "center",
+        bottom: 4,
+        left: 8,
         right: 8,
-        itemWidth: 14,
+        itemWidth: 12,
         itemHeight: 10,
+        itemGap: 10,
         textStyle: {
           color: "#cbd5e1",
           fontSize: 10
@@ -1102,26 +1115,32 @@
       },
       series: [{
         type: "pie",
-        radius: ["18%", "42%"],
-        center: ["50%", "34%"],
+        radius: ["20%", "48%"],
+        center: ["50%", "32%"],
         avoidLabelOverlap: true,
-        minAngle: 4,
+        minAngle: 2,
+        startAngle: 90,
         label: {
           show: true,
           color: "#e5e7eb",
           fontSize: 10,
           formatter: function(params) {
-            if (params.percent < 6) return "";
-            return `${params.name}: ${params.value}`;
+            if (params.percent < 8) return "";
+            return `${params.name} ${params.value}`;
           }
         },
         labelLine: {
           show: true,
           length: 8,
           length2: 6,
+          smooth: false,
           lineStyle: {
             color: "rgba(226,232,240,.75)"
           }
+        },
+        emphasis: {
+          scale: true,
+          scaleSize: 6
         },
         data
       }]
@@ -1243,7 +1262,7 @@
     const oldScale = panelScales[panelId] || 1;
     const step = deltaY < 0 ? 0.08 : -0.08;
     let newScale = +(oldScale + step).toFixed(2);
-    newScale = Math.max(0.7, Math.min(2.2, newScale));
+    newScale = Math.max(0.78, Math.min(1.8, newScale));
     panelScales[panelId] = newScale;
     applyPanelScale(panelId);
   }
